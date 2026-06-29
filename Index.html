@@ -2,154 +2,144 @@
 <html>
   <head>
     <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
-      .card {
-        background-color: white;
-        padding: 40px;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 500px;
-        width: 100%;
-        border-top: 5px solid #CFB53B; /* Wake Forest Gold */
-      }
-      h2 {
-        color: #000000; /* Wake Forest Black */
-        margin-top: 0;
-      }
-      .routing-info {
-        background-color: #f9f9f9;
-        border-left: 4px solid #CFB53B;
-        padding: 15px;
-        margin: 20px 0;
-        text-align: left;
-        font-size: 14px;
-        color: #333333;
-      }
-      .routing-info ul {
-        margin: 8px 0 0 0;
-        padding-left: 20px;
-      }
-      .routing-info li {
-        margin-bottom: 6px;
-      }
-      .btn {
-        background-color: #000000;
-        color: #CFB53B;
-        border: none;
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: bold;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 15px;
-        width: 100%;
-      }
-      .btn:hover {
-        background-color: #333333;
-      }
-      textarea {
-        width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      #message {
-        margin-top: 20px;
-        font-weight: bold;
-        color: #CFB53B;
-      }
-      .hidden {
-        display: none;
-      }
-      .switch-text {
-        margin-top: 25px;
-        font-size: 14px;
-        color: #555555;
-      }
-      .switch-link {
-        color: #000000;
-        font-weight: bold;
-        text-decoration: underline;
-        cursor: pointer;
-      }
-      .switch-link:hover {
-        color: #CFB53B;
-      }
+      body { font-family: Arial, sans-serif; background-color: #FCFBF7; color: #000000; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+      .card { background-color: #FFFFFF; padding: 35px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 550px; width: 100%; border-top: 6px solid #9E7E38; }
+      h2 { color: #000000; margin-top: 0; border-bottom: 2px solid #FDC314; padding-bottom: 10px; }
+      .routing-info { background-color: #FCFBF7; border-left: 4px solid #9E7E38; padding: 15px; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+      .input-group { margin-top: 20px; text-align: left; }
+      .field-label { font-size: 14px; font-weight: bold; color: #000000; margin-bottom: 8px; display: block; }
+      textarea, input[type="date"] { width: 100%; padding: 12px; border: 1px solid #CCCCCC; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
+      textarea:focus, input[type="date"]:focus { border-color: #9E7E38; outline: none; box-shadow: 0 0 0 2px rgba(158,126,56,0.2); }
+      .checkbox-group { background-color: #F9F9F9; padding: 15px; border: 1px solid #EEEEEE; border-radius: 4px; margin-top: 20px; font-size: 13px; line-height: 1.4; }
+      .checkbox-item { display: flex; align-items: flex-start; margin-bottom: 12px; }
+      .checkbox-item input { margin-top: 3px; margin-right: 10px; cursor: pointer; }
+      .error-banner { color: #D32F2F; background-color: #FFF9F9; border: 1px solid #D32F2F; padding: 10px; border-radius: 4px; font-size: 13px; font-weight: bold; margin-top: 20px; display: none; }
+      .btn { background-color: #000000; color: #FDC314; border: none; padding: 14px 24px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 20px; transition: background-color 0.2s ease; }
+      .btn:hover { background-color: #333333; }
+      .switch-text { margin-top: 25px; font-size: 13px; text-align: center; color: #666666; }
+      .switch-link { color: #9E7E38; font-weight: bold; text-decoration: underline; cursor: pointer; }
+      .switch-link:hover { color: #000000; }
+      #message { font-size: 16px; font-weight: bold; color: #9E7E38; text-align: center; margin-top: 20px; }
+      .hidden { display: none; }
     </style>
   </head>
   <body>
     <div class="card">
-      <h2 id="titleText">Incomplete Request: <?= action ?></h2>
+      <h2 id="titleText">Academic Grade Review: <?= action ?></h2>
       
       <div class="routing-info">
-        <strong>Upon submission, this decision will be automatically routed to:</strong>
-        <ul>
-          <li><strong>The Student:</strong> For final confirmation of the decision and plan.</li>
-          <li><strong>SPS Help (IT):</strong> So the student's Canvas course access can be updated.</li>
-          <li><strong>Registrar, Student Services & SSM:</strong> For official academic record-keeping and support.</li>
-        </ul>
+        <strong>Institutional Workflow Notice:</strong>
+        <p style="margin: 6px 0 0 0;">Submitting this form executes an immutable entry into the master database and dispatches notifications to the Student, Academic Director, and Registrar.</p>
       </div>
       
       <div id="formContainer">
-        <div style="text-align: left; font-size: 14px; font-weight: bold; color: #000000; margin-top: 10px;">
-          Optional Faculty Notes / Context:
-        </div>
-        <textarea id="facultyNotes" rows="4" placeholder="Enter any notes here..."></textarea>
         
-        <button class="btn" id="primaryBtn" onclick="submitDecision()">Confirm <?= action ?></button>
+        <div id="approvalFields" class="hidden">
+          <div class="input-group">
+            <label class="field-label">Agreed-Upon Final Completion Deadline: *</label>
+            <input type="date" id="deadlineDate">
+          </div>
+          
+          <div class="input-group">
+            <label class="field-label">Detailed Incomplete Grade Plan: *</label>
+            <textarea id="facultyPlan" rows="4" placeholder="Outline specific remaining assignments AND the dates by which each remaining deliverable is due..."></textarea>
+          </div>
+
+          <div class="checkbox-group">
+            <div class="field-label" style="margin-bottom: 10px;">Agreement Confirmation (Faculty): *</div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="agree1">
+              <label for="agree1">I confirm that the student and I have discussed and mutually agreed upon the terms outlined in this Incomplete Grade Plan, including the completion deadline.</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="agree2">
+              <label for="agree2">I understand that I must submit the final grade by the deadline, or the grade will revert based on the student's current standing, unless an extension is formally approved.</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="denialFields" class="hidden">
+          <div class="input-group">
+            <label class="field-label">Academic Justification for Denial: *</label>
+            <textarea id="denialReason" rows="5" placeholder="Please articulate the pedagogical or policy reasoning for denying this grade extension request..."></textarea>
+          </div>
+        </div>
+        
+        <div id="errorBanner" class="error-banner">
+          ⚠️ Mandatory Fields Missing: Please complete all required inputs and checkboxes before confirming.
+        </div>
+        
+        <button class="btn" id="primaryBtn" onclick="submitDecision()">
+          Submit <?= action === 'Approve' ? 'Approved Incomplete Plan' : 'Definitive Denial' ?>
+        </button>
         
         <p class="switch-text">
-          Need to change your decision? <br>
+          Require a different decision path? <br>
           <span class="switch-link" id="switchLink" onclick="switchAction()">
-            Switch to <?= action === 'Approve' ? 'Deny' : 'Approve' ?>
+            Switch action to <?= action === 'Approve' ? 'Deny' : 'Approve' ?>
           </span>
         </p>
       </div>
       
-      <div id="message" class="hidden">Processing... please wait.</div>
+      <div id="message" class="hidden">Authorizing transaction... please do not close your browser.</div>
     </div>
 
     <script>
       let currentAction = "<?= action ?>";
 
+      window.onload = function() { renderDynamicInterface(); };
+
+      function renderDynamicInterface() {
+        const approvalDiv = document.getElementById('approvalFields');
+        const denialDiv = document.getElementById('denialFields');
+        const btn = document.getElementById('primaryBtn');
+        
+        if (currentAction === 'Approve') {
+          approvalDiv.classList.remove('hidden'); denialDiv.classList.add('hidden');
+          btn.innerText = "Submit Approved Incomplete Plan";
+        } else {
+          approvalDiv.classList.add('hidden'); denialDiv.classList.remove('hidden');
+          btn.innerText = "Submit Definitive Denial";
+        }
+      }
+
       function switchAction() {
         currentAction = currentAction === 'Approve' ? 'Deny' : 'Approve';
-        
-        document.getElementById('titleText').innerText = "Incomplete Request: " + currentAction;
-        document.getElementById('primaryBtn').innerText = "Confirm " + currentAction;
-        
-        let oppositeAction = currentAction === 'Approve' ? 'Deny' : 'Approve';
-        document.getElementById('switchLink').innerText = "Switch to " + oppositeAction;
+        document.getElementById('titleText').innerText = "Academic Grade Review: " + currentAction;
+        document.getElementById('switchLink').innerText = "Switch action to " + (currentAction === 'Approve' ? 'Deny' : 'Approve');
+        document.getElementById('errorBanner').style.display = 'none';
+        renderDynamicInterface();
       }
 
       function submitDecision() {
+        let payload = {};
+        
+        if (currentAction === 'Approve') {
+          const deadline = document.getElementById('deadlineDate').value;
+          const plan = document.getElementById('facultyPlan').value.trim();
+          const cb1 = document.getElementById('agree1').checked;
+          const cb2 = document.getElementById('agree2').checked;
+          
+          if (!deadline || plan === "" || !cb1 || !cb2) {
+            document.getElementById('errorBanner').style.display = 'block'; return; 
+          }
+          payload = { deadline: deadline, plan: plan };
+        } else {
+          const denial = document.getElementById('denialReason').value.trim();
+          if (denial === "") { document.getElementById('errorBanner').style.display = 'block'; return; }
+          payload = { denialReason: denial };
+        }
+        
         document.getElementById('formContainer').classList.add('hidden');
         document.getElementById('message').classList.remove('hidden');
-        document.getElementById('message').innerText = "Processing... please wait.";
         
-        const row = "<?= row ?>";
-        const notes = document.getElementById('facultyNotes').value;
-        
+        const primaryKeyId = "<?= id ?>"; 
         google.script.run
-          .withSuccessHandler(function(response) {
-             document.getElementById('message').innerText = response;
-          })
-          .withFailureHandler(function(error) {
-             document.getElementById('message').innerText = "An error occurred. Please contact IT.";
-          })
-          .processFacultyDecision(row, currentAction, notes);
+          .withSuccessHandler(function(res) { document.getElementById('message').innerText = res; })
+          .withFailureHandler(function(err) { document.getElementById('message').innerText = "System Failure: Connection lost."; })
+          .processFacultyDecision(primaryKeyId, currentAction, payload);
       }
     </script>
   </body>

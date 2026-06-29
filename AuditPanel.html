@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #FCFBF7; color: #333; }
+      h2 { color: #000000; border-bottom: 3px solid #9E7E38; padding-bottom: 10px; margin-top: 0; }
+      .control-panel { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+      .refresh-btn { background-color: #000000; color: #FDC314; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+      .refresh-btn:hover { background-color: #333333; }
+      table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 13px; }
+      th { background-color: #000000; color: #9E7E38; text-align: left; padding: 12px; position: sticky; top: 0; }
+      td { padding: 10px 12px; border-bottom: 1px solid #EEEEEE; vertical-align: top; }
+      tr:hover { background-color: #F9F9F9; }
+      .badge { display: inline-block; padding: 3px 6px; border-radius: 3px; font-weight: bold; font-size: 11px; }
+      .badge.ERROR { background-color: #FFCDD2; color: #B71C1C; }
+      .badge.WARNING { background-color: #FFF9C4; color: #F57F17; }
+      .badge.WEB_APP_ACTION { background-color: #C8E6C9; color: #1B5E20; }
+      .badge.EMAIL_DISPATCH { background-color: #E3F2FD; color: #0D47A1; }
+      .badge.FAILSAFE_TRIGGER { background-color: #FFE0B2; color: #E65100; }
+      .loader { text-align: center; padding: 40px; color: #9E7E38; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h2>SPS Master System Audit Log</h2>
+    <div class="control-panel">
+      <span>Showing latest 50 system transactions across all modules.</span>
+      <button class="refresh-btn" onclick="fetchLogs()">↻ Refresh Data</button>
+    </div>
+    
+    <div id="tableContainer">
+      <div class="loader" id="loader">Retrieving Institutional Ledger...</div>
+    </div>
+
+    <script>
+      window.onload = fetchLogs;
+
+      function fetchLogs() {
+        document.getElementById('tableContainer').innerHTML = '<div class="loader">Retrieving Institutional Ledger...</div>';
+        google.script.run
+          .withSuccessHandler(renderTable)
+          .withFailureHandler(function(err) {
+            document.getElementById('tableContainer').innerHTML = `<div style="color:red">Failed to load logs: ${err.message}</div>`;
+          })
+          .getRecentAuditLogs();
+      }
+
+      function renderTable(logs) {
+        if (!logs || logs.length === 0) {
+          document.getElementById('tableContainer').innerHTML = '<div style="padding: 20px;">No audit history found yet.</div>';
+          return;
+        }
+        
+        let html = '<table><thead><tr><th>Timestamp</th><th>Event Type</th><th>Primary Key</th><th>Details</th></tr></thead><tbody>';
+        
+        logs.forEach(row => {
+          const typeBadge = `<span class="badge ${row[1]}">${row[1]}</span>`;
+          html += `<tr>
+                    <td style="white-space: nowrap;">${row[0]}</td>
+                    <td>${typeBadge}</td>
+                    <td><code style="background:#eee; padding:2px 4px; border-radius:3px;">${row[2]}</code></td>
+                    <td>${row[3]}</td>
+                   </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('tableContainer').innerHTML = html;
+      }
+    </script>
+  </body>
+</html>
