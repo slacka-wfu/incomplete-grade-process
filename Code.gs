@@ -3,7 +3,7 @@
  * ===============================================================
  * Enterprise Solutions Architecture: Wake Forest University (SPS)
  * @author Amy Slack & Solutions Architect
- * @version 4.0.0 - Dynamic Header Coalescing & UI Syntax Polish
+ * @version 5.0.0 - Production Master Build & Admin Triage Tooling
  */
 
 const CONFIG = {
@@ -14,7 +14,7 @@ const CONFIG = {
   RESPONSES_TAB_NAME: 'Form Responses 1', 
   AUDIT_TAB_NAME: 'System_Audit_Log', 
 
-  // --- PROGRAMMATIC LEDGER TARGETS (1-Indexed for getRange) ---
+  // --- PROGRAMMATIC LEDGER & PARITY TARGETS (1-Indexed for getRange) ---
   STATUS_COL_INDEX: 28, // Column AB: Programmatic State Manager
   NOTES_COL_INDEX: 29,  // Column AC: Denial Reasons & System Notes
 
@@ -37,9 +37,6 @@ const CONFIG = {
  * DYNAMIC HEADER COALESCING ENGINE (Column-Shift Immunity)
  * ===============================================================
  * Scans Row 1 headers for a partial string match and returns the first non-empty row value.
- * * @param {Array<string>} headers - The master title strings from Row 1
- * @param {Array<any>} rowValues - The submitted data array for the active transaction
- * @param {string} searchString - The question title syntax to match
  */
 function getCoalescedVal(headers, rowValues, searchString) {
   for (let i = 0; i < headers.length; i++) {
@@ -54,7 +51,7 @@ function getCoalescedVal(headers, rowValues, searchString) {
 
 /**
  * ===============================================================
- * PILLAR 6: ADMINISTRATIVE UI & AUDIT PANEL (UPDATED MENU)
+ * PILLAR 6: ADMINISTRATIVE UI & AUDIT PANEL (MASTER MENU)
  * ===============================================================
  */
 function onOpen() {
@@ -96,6 +93,64 @@ function logSystemAudit(eventType, details, primaryKey = 'System') {
     auditSheet.appendRow([new Date(), eventType, primaryKey, details]);
     console.info(`[${eventType}] ${details}`); 
   } catch (e) { console.error(`Audit Engine Failure: ${e.message}`); }
+}
+
+/**
+ * ===============================================================
+ * KARA TRAVERSE ACTIVE-ROW OVERRIDE ENGINE (PATTERN 1)
+ * ===============================================================
+ */
+function openStatusOverrideModal() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.RESPONSES_TAB_NAME);
+  const activeRange = SpreadsheetApp.getActiveRange();
+  
+  if (!activeRange || activeRange.getSheet().getName() !== CONFIG.RESPONSES_TAB_NAME) {
+    return SpreadsheetApp.getUi().alert('⚠️ Please click on a student row inside the "Form Responses 1" tab first.');
+  }
+  
+  const rowNum = activeRange.getRow();
+  if (rowNum < 2) {
+    return SpreadsheetApp.getUi().alert('⚠️ You have selected the header row. Please click on a valid student submission row.');
+  }
+  
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  const studentName = getCoalescedVal(headers, rowData, 'Student Full Name') || 'Unknown Student';
+  const currentStatus = rowData[CONFIG.STATUS_COL_INDEX - 1] || 'Pending / Blank';
+  
+  const template = HtmlService.createTemplateFromFile('OverrideModal');
+  template.rowNum = rowNum;
+  template.studentName = studentName;
+  template.currentStatus = currentStatus;
+  
+  const html = template.evaluate().setWidth(480).setHeight(380);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Administrative State Override');
+}
+
+function executeAdminStatusOverride(rowNum, newStatus, adminNotes) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const ss = SpreadsheetApp.openById(CONFIG.RESPONSES_SHEET_ID);
+    const sheet = ss.getSheetByName(CONFIG.RESPONSES_TAB_NAME);
+    
+    sheet.getRange(rowNum, CONFIG.STATUS_COL_INDEX).setValue(newStatus);
+    
+    if (adminNotes && adminNotes.trim() !== '') {
+      const existingNotes = sheet.getRange(rowNum, CONFIG.NOTES_COL_INDEX).getValue();
+      const updatedNotes = `[Admin Override - ${newStatus}]: ${adminNotes}\n${existingNotes}`;
+      sheet.getRange(rowNum, CONFIG.NOTES_COL_INDEX).setValue(updatedNotes);
+    }
+    
+    const adminEmail = Session.getActiveUser().getEmail() || 'Registrar Admin';
+    logSystemAudit('ADMIN_STATUS_OVERRIDE', `Status manually updated to '${newStatus}' by ${adminEmail}. Notes: ${adminNotes || 'None'}`, `Row ${rowNum}`);
+    
+    return `Success! Row #${rowNum} updated to: ${newStatus}`;
+  } catch (e) {
+    logSystemAudit('ERROR', `Override failed on Row ${rowNum}: ${e.message}`);
+    throw new Error(e.message);
+  } finally { lock.releaseLock(); }
 }
 
 function uiRetriggerEmail() {
@@ -187,7 +242,6 @@ function onFormSubmit(e) {
     const timestamp     = responses[0];
     const submitterRole = getCoalescedVal(headers, responses, 'role'); 
     
-    // DYNAMIC EXTRACTION: Immune to Google Forms auto-inserting email columns
     const studentName  = getCoalescedVal(headers, responses, 'Student Full Name'); 
     const studentEmail = getCoalescedVal(headers, responses, 'Student Email Address');
     const studentId    = getCoalescedVal(headers, responses, 'Student ID Number');
@@ -212,17 +266,12 @@ function onFormSubmit(e) {
   }
 }
 
-/**
- * Dispatches the secure Web App approval gateway to the listed Instructor.
- */
 function sendFacultyApprovalEmail(timestamp, studentName, facultyEmail, course) {
   const webAppUrl = ScriptApp.getService().getUrl(); 
   const safeId = encodeURIComponent(timestamp); 
   const approveUrl = `${webAppUrl}?id=${safeId}&action=Approve`, denyUrl = `${webAppUrl}?id=${safeId}&action=Deny`;
   
   const subject = `ACTION REQUIRED: Incomplete Grade Request for ${studentName} (${course})`;
-  
-  // UX FIX: Button syntax updated to "Approve and submit Incomplete Plan" per user critique
   const body = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000;">
       <div style="border-top: 5px solid #9E7E38; padding: 20px; background-color: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -292,6 +341,9 @@ function processFacultyDecision(id, action, payload) {
       if (colFacEmail > 0) sheet.getRange(targetRowIndex, colFacEmail).setValue(authenticatedEmail);
       if (colDeadline > 0) sheet.getRange(targetRowIndex, colDeadline).setValue(payload.deadline);
       if (colPlan > 0) sheet.getRange(targetRowIndex, colPlan).setValue(`[Web Portal Lodged]: ${payload.plan}`);
+      
+      // DIGITAL AGREEMENT PARITY STAMP: Explicitly stamped to master ledger
+      sheet.getRange(targetRowIndex, CONFIG.NOTES_COL_INDEX).setValue("Digital Agreement Confirmed via Secure Web Portal");
       
       finalEmailNotes = `Deadline: ${payload.deadline}\n\nPlan Details:\n${payload.plan}`;
       logSystemAudit('WEB_APP_ACTION', `Faculty (${authenticatedEmail}) securely logged Approved Plan via Web Portal.`, id);
@@ -366,69 +418,5 @@ function executeKaraFailSafe() {
       const body = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000; border-left: 5px solid #D32F2F; padding: 15px; background-color: #FFF9F9;"><h3 style="color: #D32F2F; margin-top: 0;">Administrative Failsafe Triggered</h3><p>Hello Kara,</p><p>An Incomplete Grade Request for <strong>${studentName}</strong> (${course}) has remained stalled in the faculty review queue for over 48 hours without authorization.</p><p><strong>System Diagnostics:</strong> The listed Instructor (<em>${facultyEmail}</em>) has received the secure Web App link but has not lodged a decision.</p><br><p><a href="https://docs.google.com/spreadsheets/d/${CONFIG.RESPONSES_SHEET_ID}/edit#gid=0&range=AB${i + 1}" style="background-color: #000000; color: #FDC314; padding: 10px 15px; text-decoration: none; font-weight: bold; border-radius: 4px;">🔍 Access Master Ledger (Row #${i + 1})</a></p></div>`;
       sendRoutedEmail(CONFIG.REGISTRAR_FAILSAFE_EMAIL, '', subject, body);
     }
-  }
-}
-
-
-/**
- * ===============================================================
- * KARA TRAVERSE ACTIVE-ROW OVERRIDE ENGINE (PATTERN 1)
- * ===============================================================
- */
-function openStatusOverrideModal() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.RESPONSES_TAB_NAME);
-  const activeRange = SpreadsheetApp.getActiveRange();
-  
-  if (!activeRange || activeRange.getSheet().getName() !== CONFIG.RESPONSES_TAB_NAME) {
-    return SpreadsheetApp.getUi().alert('⚠️ Please click on a student row inside the "Form Responses 1" tab first.');
-  }
-  
-  const rowNum = activeRange.getRow();
-  if (rowNum < 2) {
-    return SpreadsheetApp.getUi().alert('⚠️ You have selected the header row. Please click on a valid student submission row.');
-  }
-  
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  const studentName = getCoalescedVal(headers, rowData, 'Student Full Name') || 'Unknown Student';
-  const currentStatus = rowData[CONFIG.STATUS_COL_INDEX - 1] || 'Pending / Blank';
-  
-  const template = HtmlService.createTemplateFromFile('OverrideModal');
-  template.rowNum = rowNum;
-  template.studentName = studentName;
-  template.currentStatus = currentStatus;
-  
-  const html = template.evaluate().setWidth(480).setHeight(380);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Administrative State Override');
-}
-
-/**
- * Called securely by the OverrideModal HTML UI to write changes to the sheet.
- */
-function executeAdminStatusOverride(rowNum, newStatus, adminNotes) {
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-    const ss = SpreadsheetApp.openById(CONFIG.RESPONSES_SHEET_ID);
-    const sheet = ss.getSheetByName(CONFIG.RESPONSES_TAB_NAME);
-    
-    sheet.getRange(rowNum, CONFIG.STATUS_COL_INDEX).setValue(newStatus);
-    
-    if (adminNotes && adminNotes.trim() !== '') {
-      const existingNotes = sheet.getRange(rowNum, CONFIG.NOTES_COL_INDEX).getValue();
-      const updatedNotes = `[Admin Override - ${newStatus}]: ${adminNotes}\n${existingNotes}`;
-      sheet.getRange(rowNum, CONFIG.NOTES_COL_INDEX).setValue(updatedNotes);
-    }
-    
-    const adminEmail = Session.getActiveUser().getEmail() || 'Registrar Admin';
-    logSystemAudit('ADMIN_STATUS_OVERRIDE', `Status manually updated to '${newStatus}' by ${adminEmail}. Notes: ${adminNotes || 'None'}`, `Row ${rowNum}`);
-    
-    return `Success! Row #${rowNum} updated to: ${newStatus}`;
-  } catch (e) {
-    logSystemAudit('ERROR', `Override failed on Row ${rowNum}: ${e.message}`);
-    throw new Error(e.message);
-  } finally {
-    lock.releaseLock();
   }
 }
