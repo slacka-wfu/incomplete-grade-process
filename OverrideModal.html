@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #FCFBF7; color: #000; margin: 0; padding: 20px; box-sizing: border-box; }
+      .record-box { background-color: #FFF; padding: 12px; border-left: 4px solid #9E7E38; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; font-size: 13px; }
+      .label { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; }
+      select, textarea { width: 100%; padding: 10px; border: 1px solid #CCC; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 14px; margin-bottom: 15px; }
+      select:focus, textarea:focus { border-color: #9E7E38; outline: none; }
+      .btn-group { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+      .btn-cancel { background: #E0E0E0; color: #333; border: none; padding: 10px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+      .btn-save { background: #000; color: #FDC314; border: none; padding: 10px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+      .btn-save:hover { background: #333; }
+      #statusMsg { font-weight: bold; color: #9E7E38; text-align: center; margin-top: 15px; }
+    </style>
+  </head>
+  <body>
+    <div class="record-box">
+      <strong>Target Student:</strong> <?= studentName ?> (Row #<?= rowNum ?>)<br>
+      <span style="color: #666; margin-top: 4px; display: inline-block;">Current Status: <em><?= currentStatus ?></em></span>
+    </div>
+
+    <label class="label">Select New Institutional Status:</label>
+    <select id="newStatus">
+      <option value="Approved">Approved</option>
+      <option value="Pending Faculty Approval">Pending Faculty Approval</option>
+      <option value="Denied">Denied</option>
+      <option value="Withdrawn by Student">Withdrawn by Student</option>
+      <option value="Extension Expired - Grade Reverted">Extension Expired - Grade Reverted</option>
+    </select>
+
+    <label class="label">Optional Administrative Justification / Notes:</label>
+    <textarea id="adminNotes" rows="3" placeholder="Enter reason for manual override (e.g., Student withdrew from term)..."></textarea>
+
+    <div class="btn-group" id="actions">
+      <button class="btn-cancel" onclick="google.script.host.close()">Cancel</button>
+      <button class="btn-save" onclick="saveOverride()">Save Override</button>
+    </div>
+
+    <div id="statusMsg"></div>
+
+    <script>
+      function saveOverride() {
+        const status = document.getElementById('newStatus').value;
+        const notes = document.getElementById('adminNotes').value.trim();
+        const row = <?= rowNum ?>;
+        
+        document.getElementById('actions').style.display = 'none';
+        document.getElementById('statusMsg').innerText = "Updating master ledger...";
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            document.getElementById('statusMsg').innerText = res;
+            setTimeout(function() { google.script.host.close(); }, 1200);
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('statusMsg').innerText = "Error: " + err.message;
+            document.getElementById('actions').style.display = 'flex';
+          })
+          .executeAdminStatusOverride(row, status, notes);
+      }
+    </script>
+  </body>
+</html>
